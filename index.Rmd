@@ -1,0 +1,261 @@
+---
+title: "Kenya COVID-19 Vaccination Coverage"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+    vertical_layout: fill
+    self_contained: FALSE
+---
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(sf)
+library(RecordLinkage)
+library(lubridate)
+# imported data -----------------------------------------------------------
+
+data<-read_csv("vaccination.csv")
+counties<-st_read("County.shp")
+vaccination_data<-read_csv("covid19_vaccine_data_20210422.csv")
+facilities<- read_csv("facilities.csv")%>%
+  select(Officialname, County)%>%
+  distinct()%>%
+  mutate(Officialname=str_to_title(Officialname))
+
+# data wrangling ----------------------------------------------------------
+
+vaccination_data1<- vaccination_data%>%
+  mutate(vaccination_date=date(vaccination_date))%>%
+  mutate(place_of_vaccination=str_to_title(place_of_vaccination))%>%
+  left_join(facilities, by=c("place_of_vaccination"="Officialname"))%>%
+  mutate(County=ifelse(place_of_vaccination%in%c("Aga Khan Hospital Mombasa", "Mombasa Regional Vaccines Store", 
+                                                 "Tudor Sub-County Hospital", "Likoni Sub-County Hospital", 
+                                                 "Port Reitz  Hospital", "Premiere Hospital"), "Mombasa", 
+                ifelse(place_of_vaccination%in%c("Alupe Sub County Hospital", "Holly Family Nangina Mission Hospital", 
+                                                 "Nambale Sub County", "Port Victoria Sub County Hospital"), "Busia",
+                ifelse(place_of_vaccination%in%c("Baragoi Sub- County Hospital", "Samburu Sub County Hospital"), "Samburu",
+                ifelse(place_of_vaccination%in%c("Yala Sch", "Ukwala Sch"), "Siaya",
+                ifelse(place_of_vaccination%in%c("Kutulo Sub County Hospital", "Mandera North Subcounty Hospital", "Lafey Sub County Hospital"), "Mandera",
+                ifelse(place_of_vaccination%in%c("Athi River Level 4", "Machakos Sub County", "Kangundo Level 4","Kathiani Level 4", 
+                                                 "Masinga Level 4", "Masinga Sub County", "Matuu Level 4", "Muuma Andu Level 4", 
+                                                 "Mwala Level 4", "Mutituni Level 4", "Nguluni Level 4"), "Machakos", 
+                ifelse(place_of_vaccination%in%c("Aic Litein Hospital", "Fort Ternan Sch", "Kapkatet Sub County Hospital", "Kipkelion Sub County Hospital",
+                                                 "Kipchimchim Hospital", "Londiani Hospital", "St. Gabriel Hospital", "Sosiot Sch",
+                                                 "Roret Sub County Hospital", "Sigowet Sub County Hospiotal", "Sigowet/Soin Sub County"), "Kericho", 
+                ifelse(place_of_vaccination%in%c("Awendo Subcounty Hospital", "Isebania Subcounty Hospital", 
+                                                 "Karungu Subcounty Hospital", "Kegonga Subcounty Hospital", "Kehancha Subcounty Hospital", 
+                                                 "Kuria East Sub County", "Kuria West Sub County","Macalder Subcounty Hospital", 
+                                                 "Uriri Subcounty Hospital", "Ulanda Mission Hospital", "Lifecare Hospital",
+                                                 "Muhuru Sub County Hospital", "Nyatike Sub County", "Pastor Machaje Hospital", 
+                                                 "Othoro Subcounty Hospital", "St. Josephs Mission", "St. Camillus Sori", 
+                                                 "Oyani Subcounty Hospital", "Rapcom Hospital", "Rongo Sub County", 
+                                                 "Rongo Subcounty Hospital", "Royal Hospital"), "Migori",
+                ifelse(place_of_vaccination%in%c("Bliss Healthcare, College House", "Bliss Healthcare, Embakasi",
+                                                 "Bliss Healthcare, Westlands", "Coptic Mission Hospital", 
+                                                 "Dagoretti North Sub County", "Nairobi Regional Vaccines Store",
+                                                 "Afya House Dispensary", "Houghton Medical Centre", "National Distribution Center", 
+                                                 "Quiver Medical Center"), "Nairobi",
+                ifelse(place_of_vaccination%in%c("Bomet Central Sub County", "Bomet East Sub County", "Chepalungu Sub County", 
+                                                 "Konoin Sub County", "Sotik Sub County"), "Bomet",
+                ifelse(place_of_vaccination%in%c("Bokoli Sub-County Hospital", "Bumula Sub-County Hospital", 
+                                                 "Bungoma West Hospital", "Cheptais Sub County", 
+                                                 "Cheptais Sub-County Hospital", "Chwele Sub-County Hospital", "Dreamland Medical Cenre",
+                                                 "Khalaba Medical Centre", "Kimilili Sub County","Kimilili Sub-County Hospital",
+                                                 "Korry Family Hospital", "Webuye County Hospital", "Lugulu Mission Hospital", 
+                                                 "Mt. Elgon Sub-County Hospital", "Naitiri Sub-County Hospital", 
+                                                 "Sinoko Sub-County Hospital","Sirisia Sub-County Hospital"), "Bungoma",
+                ifelse(place_of_vaccination%in%c("Bura Sub County Hospital"), "Tana River",
+                ifelse(place_of_vaccination%in%c("Mwatate Sub County Hospital"), "Taita Taveta",
+                ifelse(place_of_vaccination%in%c("Chemolingot District Hospital", "Butere County Hospital", "Iguhu County Hospital", 
+                                                 "Khwiseo Health Centre", "Likuyani Sub County Hospital", "Lumakanda County Hospital",
+                                                 "Malava County Hospital", "Mumias West Sub County Hospital", 
+                                                 "Navakholo Sub County Hospital", "Shianda Health Centre"), "Kakamega",
+                ifelse(place_of_vaccination%in%c("Banissa Sub County Hospital", "Eldama Ravine District Hospital", "Mogotio  Sub-County Hospital Baringo"), "Baringo", 
+                ifelse(place_of_vaccination%in%c("Chepareria Sub County  Hospital", "Kabichbich Health  Centre",
+                                                 "Kacheliba Sub County Hospital", "Sigor Sub Couunty  Hospital"), "West Pokot",
+                ifelse(place_of_vaccination%in%c("Chepterwai Sub County Hospital", "Kaptumo Sub County Hospital", "Meteitei Sub County Hospital"), "Nandi",
+                ifelse(place_of_vaccination%in%c("Engineer County Hospital"), "Nyandarua",
+                ifelse(place_of_vaccination%in%c("Huruma Sub County Hospital", "Fountain Health Care", "Kapteldon Sub-County Hospital", 
+                                                 "Kesses Sub-County Hospital", "Mediheal Hospital-Eldoret", "Moiben Sub County Hospital"), "Uasin Gishu",
+                ifelse(place_of_vaccination%in%c("Faza Sub County Hospital", "Mpeketoni Sub County Hospital"), "Lamu",
+                ifelse(place_of_vaccination%in%c("Loitokitok Sub-County Hospital", "Ongata Rongai Sub-County Hospital"), "Kajiado",
+                ifelse(place_of_vaccination%in%c("Kakuma Sub County Hospital", "Turkana West Sub County", "Lokichar Sub County Hospital",
+                                                 "Lokori Sub County Hospital", "Lorugum Sub County Hospital"), "Turkana",
+                ifelse(place_of_vaccination%in%c("Gesima Sub-County Hospital", "Masaba North Sub County", "Nyamira North Sub County"), "Nyamira",
+                ifelse(place_of_vaccination%in%c("Ijara District Hospital - Masalani", "Modogashe Sub-County Hospital", "Msf Dagahaley Main Hospital"), "Garissa",
+                ifelse(place_of_vaccination%in%c("Kabondo Sub-County  Hospital", "Marindi Sub County Referral Hospital", "Mbita Sub County", 
+                                                 "Ndhiwa Sub-District Hospital", "Suba Sub-Couty Hospital", "Rachuonyo South Sub County"), "Homa Bay",
+                ifelse(place_of_vaccination%in%c("Ishiara Level 4 Hospital","Mbeere Level 4 Hospital"), "Embu",
+                ifelse(place_of_vaccination%in%c("Kinondo Hospital", "Lunga Lunga Sub County Hospital", "Matuga Sub County"), "Kwale",
+                ifelse(place_of_vaccination%in%c("Wangige Sub County Hospital", "Lari Hospital", "Medicross Limited, Thika Ananas"), "Kiambu",
+                ifelse(grepl("Igembe|Tigania", place_of_vaccination), "Meru",
+                ifelse(place_of_vaccination%in%c("Family Heritage  Hospital", "Kangema Sub County Hospital", "Kigumo Level 4 Hospital", 
+                                                 "Kigumo Sub County Hospital", "Kirwara Sub County Hospital", "Maragua Sub County Hospital", 
+                                                 "Muranga", "Muriranjas Sub County Hospital"), "Murang'a",
+                ifelse(place_of_vaccination%in%c("Eldas Sub County", "Griftu Sub County Hospital", "Habaswein Sub County Hospital", 
+                                                 "Wajir North Sub County", "Tarbaj Sub County Hospital"), "Wajir",
+                ifelse(place_of_vaccination%in%c("Emuhaya Sub-County Hospital", "Hamisi Sub-County Hospital", "Kaimosi Mission", 
+                                                 "Sabatia Sub-County Hospital"), "Vihiga",
+                ifelse(place_of_vaccination%in%c("Cherangany Sub-County Hospital", "Endebess Sub-County Hospital",
+                                                 "Kapsara Sub-County Hospital", "Kwanza Sub-County Hospital"), "Trans Nzoia",
+                ifelse(place_of_vaccination%in%c("Chuka Sub County", "Magutuni Sub-County Hospital", "Pcea Chogoria Hospital"), "Tharaka Nithi",
+                ifelse(place_of_vaccination%in%c("Consolata Mission Hospital-Mathari", "Nyeri Regional Vaccines Store",
+                                                 "Narumoru Health Centre", "Kaiyaba Health Centre", "Karatina Sub-County Hospital", 
+                                                 "Tumutumu Hospital", " Mathira East Sub County", "Mt.kenya Hospital", "Mukurweini Hospital",
+                                                 "Mathira East Sub County", "Mathira West Sub County", "Othaya Sub-County Hospital"), "Nyeri",
+                ifelse(grepl("Kisumu|Muhoroni|Nyando|Nyakach|Seme Sub", place_of_vaccination), "Kisumu",
+                ifelse(grepl("Kitui|Yatta|Mwingi|Mutomo", place_of_vaccination), "Kitui",
+                ifelse(grepl("Nanyuki|Nyahururu", place_of_vaccination), "Laikipia",
+                ifelse(place_of_vaccination%in%c("Marakwet West Sub County", "Marakwet East Sub County", "Keiyo North Sub County", 
+                                                 "Keiyo North Sub County", "Keiyo South Sub County"), "Elgeyo Marakwet",
+                ifelse(place_of_vaccination%in%c("Etago Sub County Hospital", "Gesusu Sub County Refferal Hospital", "Iranda Sub County Referral Hospital",
+                                                 "Iyabe Sub County Referral Hospital", "Kenyenya Sub Count Referral Hospital", 
+                                                 "Keumbu Sub County Referral Hospital", "Kitutu Chache South Sub County",
+                                                 "Marani Sub County Referral Hospital","Nyamache Sub County Refferal Hospital",
+                                                 "St Cathrine Ichuni Mission Hospital"), "Kisii",
+                ifelse(place_of_vaccination%in%c("Laisamis Sub County Referral Hospital(Marsabit South)","Ismc Hospital", 
+                                                 "Moyale Sub County Referral  Hospital"), "Marsabit",
+                ifelse(grepl("Nakuru|Gilgil Sub|Keringet|Kuresoi|Lanet|Langa Langa|Molo|Njoro|St. Elizabeth|Rongai Sub County", place_of_vaccination), "Nakuru",
+                ifelse(grepl("Kilifi|Ganze Sub County|Magarini|Malindi|Rabai Sub", place_of_vaccination), "Kilifi",
+                ifelse(place_of_vaccination%in%c("Sultan Hamud Subcounty Hospital (Level Iv)", "Tawa Subcounty Hospital (Level Iv)",
+                                                 "Kibwezi Subcounty Hospital (Iv)", "Makindu Subcounty Hospital (Level Iv)",
+                                                 "Kambu Subcounty Hospital (Iv)", "Kikoko Mission Hospital (Iv)",
+                                                 "Kilungu Subcounty Hospital (Iv)", "Kisau Subcounty Hospital (Level Iv)", 
+                                                 "Matiliku Subcounty Hospital (Level Iv)", "Mbooni Subcounty Hospital (Level Iv)", 
+                                                 "Mtito Andei Subcounty Hospital (Iv)", "Mukuyuni Subcounty Hospital (Level Iv)", 
+                                                 "Mutyambua Subcounty Hospital (Level Iv)", "Mulatya Memorial Hospital", 
+                                                 "Ralpha Hospital", "Royal Star Hospital"), "Makueni",County 
+                       )))))))))))))))))))))))))))))))))))))))))))))%>%
+  mutate(County=ifelse(is.na(County), place_of_vaccination, County))%>%
+  mutate(County=recode(County, "Muranga"="Murang'a"))
+
+```
+
+Summary {data-navmenu="Summary"}
+============================================================
+
+```{r, echo=FALSE,message=F, warning=F, fig.width=16, fig.height=10}
+
+vaccination_data1$County<-recode(vaccination_data1$County, "Murang'a"="Muranga")
+vaccination_data1a<-vaccination_data1%>%
+  group_by(County)%>%
+  count()%>%
+  ungroup()
+counties1<- full_join(counties, vaccination_data1a, by=c("Name"="County"))
+
+p1<-ggplot(counties1, aes(fill=n))+geom_sf()+theme_bw()+scale_fill_gradient(low="#ffeda0", high="#f03b20")+labs(fill="Number of people \nvaccinated")
+
+p2<-ggplot(counties1[counties1$Name!="Nairobi",], aes(fill=n))+geom_sf()+theme_bw()+scale_fill_gradient(low="#ffeda0", high="#f03b20", na.value = "white")+labs(fill="Number of people \nvaccinated", caption="Nairobi has been omitted for clarity")
+
+gridExtra::grid.arrange(p1, p2, nrow=1)
+```
+
+- The vaccination dates were ranging from 1994 to 2029. 
+
+- In plotting this graphic, we used data for 2021 though some entries were from 1st January 2021 yet the first batch of the vaccine arrived in Kenya on 2nd March 2021.
+
+Trends {data-navmenu="Trends"}
+============================================================
+
+```{r, echo=F,message=F, warning=F, fig.width=16, fig.height=10}
+vaccination_data1b<- vaccination_data1%>%
+  filter(vaccination_date>as.Date("2021-01-01") & vaccination_date<as.Date("2021-04-29"))%>%
+  group_by(vaccination_date)%>%
+  count()%>%
+  ungroup()
+
+
+ggplot(vaccination_data1b, aes(x=vaccination_date, y=n))+geom_col(fill="darkgreen")+theme_bw()+scale_x_date(breaks="1 month", date_labels = "%b-%y")+labs(x="Period", y="Number of people vaccinated")
+```
+
+By occupation {data-navmenu="By Occupation"}
+============================================================
+
+```{r, echo=F,message=F, warning=F, fig.width=16, fig.height=10}
+vaccination_data1c<- vaccination_data1%>%
+  group_by(age)%>%
+  count()%>%
+  ungroup()
+
+ggplot(vaccination_data1c[vaccination_data1c$age>0,], aes(x=age, y=n))+geom_col(fill="darkgreen")+theme_bw()+labs(x="Age (Years)", y="Number of people vaccinated")+scale_x_continuous(breaks = seq(18,99,by=10))+geom_vline(xintercept = 58, linetype=2, color="red")
+```
+```{r, echo=F,message=F, warning=F}
+##occupation
+library(vcd)
+library(ggmosaic)
+vaccination_data1d<- vaccination_data1%>%
+  group_by(occupation, County)%>%
+  count()%>%
+  ungroup()
+
+
+# ggplot(data = vaccination_data1) +
+#   geom_mosaic(aes(x = product(occupation,County), fill = County), show.legend = F)+
+#   theme_bw()
+
+#mosaic(Freq~occupation+County, data=vaccination_data1, shade=T, legend=T)
+ggplot(vaccination_data1d, aes(x=reorder(County,n),y=n, fill=occupation))+geom_col()+coord_flip()+theme_bw()+labs(y="Numberof people vaccinated", x="County", fill="Occupation")
+#mosaicplot(t(subs_count), col = vaccination_data1, off = 5, las = 1, main = "")
+```
+
+By type {data-navmenu="By Type"}
+============================================================
+
+```{r, echo=F,message=F, warning=F, fig.width=16, fig.height=10}
+## type of vaccination
+
+vaccination_data1e<- vaccination_data1%>%
+  group_by(vaccine, County)%>%
+  count()%>%
+  ungroup()
+
+
+ggplot(vaccination_data1e, aes(x=reorder(County,n),y=n, fill=vaccine))+geom_col()+coord_flip()+theme_bw()+labs(y="Numberof people vaccinated", x="County", fill="Type of vaccine")
+```
+
+- Almost all the people vaccination got the Covidshield vaccine (100%, n=780025) while less than 1% got the Sputnik-V vaccine (n=1296)
+
+- Out of the people vaccinated, 13% (n=101,164) had an underlying condition.
+
+Underlying conditions {data-navmenu="Underlying conditions"}
+============================================================
+
+```{r, echo=F, message=F, warning=F, fig.width=16, fig.height=10}
+## underlying conditions
+library(splitstackshape) 
+vaccination_data1f<- cSplit(vaccination_data1, 'conditions', ',')
+
+vaccination_data1f<-reshape2::melt(vaccination_data1f, id=1:8)
+
+vaccination_data1g<- vaccination_data1f%>%
+  mutate(value=str_remove(value, pattern="\\["))%>%
+  mutate(value=str_remove(value, pattern="\\]"))%>%
+  mutate(value=str_remove(value, pattern="\\'"))%>%
+  mutate(value=str_remove(value, pattern="\\'"))%>%
+  mutate(value=trimws(value))%>%
+  mutate(value=ifelse(value%in%"", NA, value))%>%
+  select(-variable)%>%
+  distinct()%>%
+  filter(!is.na(value))%>%
+  group_by(value, County)%>%
+  count()
+
+vaccination_data1h<- vaccination_data1f%>%
+  mutate(value=str_remove(value, pattern="\\["))%>%
+  mutate(value=str_remove(value, pattern="\\]"))%>%
+  mutate(value=str_remove(value, pattern="\\'"))%>%
+  mutate(value=str_remove(value, pattern="\\'"))%>%
+  mutate(value=trimws(value))%>%
+  mutate(value=ifelse(value%in%"", NA, value))%>%
+  select(-variable)%>%
+  distinct()%>%
+  filter(!is.na(value))%>%
+  group_by(value)%>%
+  count()
+
+ggplot(vaccination_data1h, aes(x=reorder(value, n), y=n))+geom_col(fill="#feb24c")+theme_bw()+coord_flip()+labs(x="Pre-existing condition", y="Number vaccinated")
+
+
+```
+
